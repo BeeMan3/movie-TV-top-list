@@ -248,3 +248,6 @@ top-list-detailed.json
 
 # Environment configuration
 .env
+
+# Deployment directory (created during build)
+deploy/

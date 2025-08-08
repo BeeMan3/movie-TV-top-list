@@ -6,18 +6,18 @@ An automated system that fetches and maintains a list of the top 50 recent movie
 
 This project automatically scrapes IMDB's "Most Popular Movies" and "Most Popular TV Shows" lists to create a combined ranking of the top 50 entertainment titles.
 The list's primary purpose is to be used for autobrr filter automation.
-The list updates daily at 6:00 AM UTC using GitHub Actions.
+The list updates daily at 6:15 AM UTC using GitHub Actions.
 
 ## Features
 
--   **Daily Updates**: Automatically runs every day at 6:00 AM UTC
+-   **Daily Updates**: Automatically runs every day at 6:15 AM UTC
 -   **No API Keys Required**: Uses web scraping from public IMDB pages
 -   **Combined List**: Merges movies and TV shows into a single ranked list
 -   **Simple Output Format**: Clean JSON format with just titles
 -   **Configurable**: Fully configurable via environment variables or .env file
 -   **Type Safe**: Built with Pydantic models and full type annotations
 -   **Modular Architecture**: Clean separation of concerns with dedicated classes
--   **GitHub Actions Artifacts**: Clean output via artifacts (no repository commits)
+-   **GitHub Pages Deployment**: Public URLs accessible via simple HTTP GET requests
 -   **Robust Error Handling**: Graceful failure with empty output on scraping errors
 
 ## Output Format
@@ -66,31 +66,59 @@ A detailed version `top-list-detailed.json` includes additional metadata:
     - Check "Allow GitHub Actions to create and approve pull requests"
     - Click "Save"
 
-4. **Manual trigger** (optional):
+4. **Enable GitHub Pages**:
+
+    - Go to Settings → Pages
+    - Under "Source", select "Deploy from a branch"
+    - Choose "gh-pages" branch and "/ (root)" folder
+    - Click "Save"
+
+5. **Manual trigger** (optional):
     - Go to the "Actions" tab
     - Click on "Update Top Movies and Series List"
     - Click "Run workflow" to test the setup
 
 ## Accessing the Data
 
-The generated JSON files are available as **GitHub Actions artifacts**:
+The generated JSON files are automatically deployed to **GitHub Pages** and accessible via direct URLs:
 
-1. **Navigate to Actions**: Go to the "Actions" tab in your repository
-2. **Find Latest Run**: Click on the most recent "Update Top Movies and Series List" workflow run
-3. **Download Artifacts**: Scroll down to the "Artifacts" section and download "top-movies-series-list"
-4. **Extract Files**: The downloaded ZIP contains both `top-list.json` and `top-list-detailed.json`
+### Public URLs
+
+Once you've set up the repository, the data will be available at:
+
+-   **Simple List**: `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list.json`
+-   **Detailed List**: `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list-detailed.json`
+-   **Web Interface**: `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/`
 
 ### Direct API Access
 
-You can also access artifacts programmatically via GitHub's API:
+You can fetch the data directly with any HTTP client:
 
 ```bash
-# Get latest artifacts for your repository
-curl -H "Accept: application/vnd.github.v3+json" \
-     https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO_NAME/actions/artifacts
+# Get the simple list
+curl https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list.json
+
+# Get the detailed list
+curl https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list-detailed.json
 ```
 
-**Artifacts are retained for 30 days** and automatically cleaned up to keep storage usage minimal.
+### Example Usage
+
+```javascript
+// Fetch in JavaScript
+fetch("https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list.json")
+    .then((response) => response.json())
+    .then((data) => console.log(data));
+```
+
+```python
+# Fetch in Python
+import requests
+response = requests.get('https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list.json')
+data = response.json()
+```
+
+**The URLs always point to the latest data** - no authentication, downloading, or unpacking required!
 
 ## Configuration
 
@@ -136,7 +164,7 @@ SCRAPER_DETAILED_OUTPUT_FILE=my-detailed-list.json
 2. **Processing**: Removes ranking numbers, extracts clean titles
 3. **Combining**: Interleaves movies and TV shows for variety
 4. **Output**: Generates both simple and detailed JSON files
-5. **Automation**: GitHub Actions uploads the files as artifacts daily
+5. **Automation**: GitHub Actions deploys the files to GitHub Pages daily
 
 ## Data Sources
 

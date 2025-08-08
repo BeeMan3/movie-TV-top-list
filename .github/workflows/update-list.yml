@@ -26,11 +26,17 @@ jobs:
             - name: Fetch latest movies and series
               run: python fetch_top_list.py
 
-            - name: Upload artifacts
-              uses: actions/upload-artifact@v4
+            - name: Create deployment directory
+              run: |
+                  mkdir -p deploy
+                  cp top-list.json deploy/
+                  cp top-list-detailed.json deploy/
+                  cp templates/index.html deploy/
+
+            - name: Deploy to GitHub Pages
+              uses: peaceiris/actions-gh-pages@v3
               with:
-                  name: top-movies-series-list
-                  path: |
-                      top-list.json
-                      top-list-detailed.json
-                  retention-days: 30
+                  github_token: ${{ secrets.GITHUB_TOKEN }}
+                  publish_dir: deploy
+                  keep_files: false
+                  commit_message: "Update top movies and series list"
