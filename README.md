@@ -185,6 +185,27 @@ If scraping fails, the script will output empty arrays to ensure the files are a
 2. Check that workflow permissions are set to "Read and write"
 3. Verify the repository is not private (or you have GitHub Pro for private repos)
 
+### Permission Denied Error (403)
+
+If you get a "Permission denied" error when the workflow tries to push to gh-pages:
+
+1. **Check Repository Settings**:
+
+    - Go to Settings → Actions → General
+    - Under "Workflow permissions", select "Read and write permissions"
+    - Save the settings
+
+2. **Verify GitHub Pages Configuration**:
+
+    - Go to Settings → Pages
+    - Ensure "Deploy from a branch" is selected
+    - Choose "gh-pages" as the source branch
+    - The workflow will create this branch automatically on first run
+
+3. **Repository Ownership**:
+    - Make sure you have admin/write access to the repository
+    - If it's a forked repository, you may need to enable Actions in your fork
+
 ### Rate Limiting
 
 The script includes delays between requests to be respectful to IMDB's servers. If you encounter rate limiting, you can increase the `SCRAPER_REQUEST_DELAY` setting.
