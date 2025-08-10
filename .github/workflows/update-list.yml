@@ -13,6 +13,7 @@ permissions:
 jobs:
     update-list:
         runs-on: ubuntu-latest
+        environment: github-pages
 
         steps:
             - name: Checkout repository
