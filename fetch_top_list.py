@@ -54,17 +54,18 @@ class ScraperConfig(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        cli_parse_args=True,
     )
 
     # List size configuration
     max_movies: int = Field(
-        default=25, ge=1, le=100, description="Maximum number of movies to fetch"
+        default=50, ge=1, le=100, description="Maximum number of movies to fetch"
     )
     max_tv_shows: int = Field(
-        default=25, ge=1, le=100, description="Maximum number of TV shows to fetch"
+        default=50, ge=1, le=100, description="Maximum number of TV shows to fetch"
     )
     max_total_items: int = Field(
-        default=50, ge=1, le=200, description="Maximum total items in final list"
+        default=100, ge=1, le=200, description="Maximum total items in final list"
     )
 
     # Request configuration
