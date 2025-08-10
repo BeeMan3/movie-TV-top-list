@@ -77,11 +77,11 @@ class ScraperConfig(BaseSettings):
 
     # URLs
     imdb_movies_url: HttpUrl = Field(
-        default="https://www.imdb.com/chart/moviemeter/",
+        default=HttpUrl("https://www.imdb.com/chart/moviemeter/"),
         description="IMDB popular movies URL",
     )
     imdb_tv_url: HttpUrl = Field(
-        default="https://www.imdb.com/chart/tvmeter/",
+        default=HttpUrl("https://www.imdb.com/chart/tvmeter/"),
         description="IMDB popular TV shows URL",
     )
 
@@ -156,7 +156,7 @@ class IMDBScraper:
         return items
 
     def _scrape_imdb_list(
-        self, url: str, content_type: ContentType, max_items: int
+        self, url: HttpUrl, content_type: ContentType, max_items: int
     ) -> List[ContentItem]:
         """Scrape an IMDB list for content."""
         try:
