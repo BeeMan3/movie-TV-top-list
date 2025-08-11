@@ -13,7 +13,7 @@ from typing import List, Optional
 
 import requests
 from bs4 import BeautifulSoup
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -68,6 +68,30 @@ class ScraperConfig(BaseSettings):
         default=100, ge=1, le=200, description="Maximum total items in final list"
     )
 
+    # Filter configuration
+    min_year: Optional[int] = Field(
+        default_factory=lambda: datetime.now().year - 5,
+        ge=1900,
+        description="Minimum release year filter (None to disable)",
+    )
+    max_year: Optional[int] = Field(
+        default=None,
+        ge=1900,
+        description="Maximum release year filter (None for current year)",
+    )
+    min_rating: Optional[float] = Field(
+        default=6.0,
+        ge=1.0,
+        le=10.0,
+        description="Minimum user rating filter (None to disable)",
+    )
+    max_rating: Optional[float] = Field(
+        default=None,
+        ge=1.0,
+        le=10.0,
+        description="Maximum user rating filter (None to disable)",
+    )
+
     # Request configuration
     request_timeout: int = Field(
         default=15, ge=5, le=60, description="Request timeout in seconds"
@@ -76,14 +100,14 @@ class ScraperConfig(BaseSettings):
         default=2.0, ge=0.1, le=10.0, description="Delay between requests in seconds"
     )
 
-    # URLs
-    imdb_movies_url: HttpUrl = Field(
-        default=HttpUrl("https://www.imdb.com/chart/moviemeter/"),
-        description="IMDB popular movies URL",
+    # Base URLs (will be modified with filters)
+    imdb_movies_base_url: str = Field(
+        default="https://www.imdb.com/chart/moviemeter/",
+        description="IMDB popular movies base URL",
     )
-    imdb_tv_url: HttpUrl = Field(
-        default=HttpUrl("https://www.imdb.com/chart/tvmeter/"),
-        description="IMDB popular TV shows URL",
+    imdb_tv_base_url: str = Field(
+        default="https://www.imdb.com/chart/tvmeter/",
+        description="IMDB popular TV shows base URL",
     )
 
     # Output configuration
@@ -99,6 +123,45 @@ class ScraperConfig(BaseSettings):
         default="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         description="User agent string for requests",
     )
+
+    def _build_url_with_filters(self, base_url: str) -> str:
+        """Build URL with year and rating filters applied."""
+        url_parts = [base_url.rstrip("/")]
+        query_params = []
+
+        # Add year filter
+        if self.min_year is not None or self.max_year is not None:
+            year_filter = ""
+            if self.min_year is not None:
+                year_filter += str(self.min_year)
+            year_filter += ","
+            if self.max_year is not None:
+                year_filter += str(self.max_year)
+            query_params.append(f"year={year_filter}")
+
+        # Add rating filter
+        if self.min_rating is not None or self.max_rating is not None:
+            rating_filter = ""
+            if self.min_rating is not None:
+                rating_filter += str(self.min_rating)
+            rating_filter += ","
+            if self.max_rating is not None:
+                rating_filter += str(self.max_rating)
+            query_params.append(f"user_rating={rating_filter}")
+
+        if query_params:
+            return f"{url_parts[0]}/?{'&'.join(query_params)}"
+        return base_url
+
+    @property
+    def imdb_movies_url(self) -> str:
+        """Get the movies URL with filters applied."""
+        return self._build_url_with_filters(self.imdb_movies_base_url)
+
+    @property
+    def imdb_tv_url(self) -> str:
+        """Get the TV shows URL with filters applied."""
+        return self._build_url_with_filters(self.imdb_tv_base_url)
 
 
 class IMDBScraper:
@@ -157,7 +220,7 @@ class IMDBScraper:
         return items
 
     def _scrape_imdb_list(
-        self, url: HttpUrl, content_type: ContentType, max_items: int
+        self, url: str, content_type: ContentType, max_items: int
     ) -> List[ContentItem]:
         """Scrape an IMDB list for content."""
         try:
@@ -179,7 +242,7 @@ class IMDBScraper:
 
             elements = []
             for selector in selectors:
-                elements = soup.select(selector)
+                elements = soup.select(selector, limit=max_items)
                 if elements:
                     print(
                         f"Found {len(elements)} {content_type.value}s using selector: {selector}"
@@ -286,6 +349,24 @@ def main() -> None:
     print(
         f"Configuration: max_movies={config.max_movies}, max_tv_shows={config.max_tv_shows}, max_total={config.max_total_items}"
     )
+
+    # Display filter configuration
+    filters_applied = []
+    if config.min_year is not None:
+        filters_applied.append(f"min_year={config.min_year}")
+    if config.max_year is not None:
+        filters_applied.append(f"max_year={config.max_year}")
+    if config.min_rating is not None:
+        filters_applied.append(f"min_rating={config.min_rating}")
+    if config.max_rating is not None:
+        filters_applied.append(f"max_rating={config.max_rating}")
+
+    if filters_applied:
+        print(f"Active filters: {', '.join(filters_applied)}")
+        print(f"Movies URL: {config.imdb_movies_url}")
+        print(f"TV Shows URL: {config.imdb_tv_url}")
+    else:
+        print("No filters applied - fetching all popular content")
 
     # Initialize components
     scraper = IMDBScraper(config)

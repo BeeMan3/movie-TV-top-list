@@ -13,6 +13,8 @@ The list updates daily at 6:15 AM UTC using GitHub Actions.
 -   **Daily Updates**: Automatically runs every day at 6:15 AM UTC
 -   **No API Keys Required**: Uses web scraping from public IMDB pages
 -   **Combined List**: Merges movies and TV shows into a single ranked list
+-   **Content Filtering**: Filter by release year and user rating for fresh, high-quality content
+-   **Private Tracker Optimized**: Default filters target recent, well-rated content ideal for autobrr
 -   **Simple Output Format**: Clean JSON format with just titles
 -   **Configurable**: Fully configurable via environment variables or .env file
 -   **Type Safe**: Built with Pydantic models and full type annotations
@@ -131,15 +133,49 @@ cp .env.example .env
 
 ### Available Configuration Options
 
-| Variable                       | Default                | Description                                  |
-| ------------------------------ | ---------------------- | -------------------------------------------- |
-| `SCRAPER_MAX_MOVIES`           | 25                     | Maximum number of movies to fetch (1-100)    |
-| `SCRAPER_MAX_TV_SHOWS`         | 25                     | Maximum number of TV shows to fetch (1-100)  |
-| `SCRAPER_MAX_TOTAL_ITEMS`      | 50                     | Maximum total items in final list (1-200)    |
-| `SCRAPER_REQUEST_TIMEOUT`      | 15                     | Request timeout in seconds (5-60)            |
-| `SCRAPER_REQUEST_DELAY`        | 2.0                    | Delay between requests in seconds (0.1-10.0) |
-| `SCRAPER_SIMPLE_OUTPUT_FILE`   | top-list.json          | Simple output filename                       |
-| `SCRAPER_DETAILED_OUTPUT_FILE` | top-list-detailed.json | Detailed output filename                     |
+| Variable                       | Default                | Description                                   |
+| ------------------------------ | ---------------------- | --------------------------------------------- |
+| `SCRAPER_MAX_MOVIES`           | 25                     | Maximum number of movies to fetch (1-100)     |
+| `SCRAPER_MAX_TV_SHOWS`         | 25                     | Maximum number of TV shows to fetch (1-100)   |
+| `SCRAPER_MAX_TOTAL_ITEMS`      | 50                     | Maximum total items in final list (1-200)     |
+| `SCRAPER_MIN_YEAR`             | 2020                   | Minimum release year filter (None to disable) |
+| `SCRAPER_MAX_YEAR`             | None                   | Maximum release year filter (None to disable) |
+| `SCRAPER_MIN_RATING`           | 6.0                    | Minimum user rating filter (None to disable)  |
+| `SCRAPER_MAX_RATING`           | None                   | Maximum user rating filter (None to disable)  |
+| `SCRAPER_REQUEST_TIMEOUT`      | 15                     | Request timeout in seconds (5-60)             |
+| `SCRAPER_REQUEST_DELAY`        | 2.0                    | Delay between requests in seconds (0.1-10.0)  |
+| `SCRAPER_SIMPLE_OUTPUT_FILE`   | top-list.json          | Simple output filename                        |
+| `SCRAPER_DETAILED_OUTPUT_FILE` | top-list-detailed.json | Detailed output filename                      |
+
+### Content Filtering
+
+The scraper supports filtering content by release year and user rating to ensure only fresh, high-quality content is included - perfect for private tracker optimization:
+
+**Filter Examples:**
+
+```env
+# Only very recent content (last 2 years)
+SCRAPER_MIN_YEAR=2023
+SCRAPER_MAX_YEAR=None
+
+# High-quality content only
+SCRAPER_MIN_RATING=7.5
+SCRAPER_MAX_RATING=None
+
+# Specific year range
+SCRAPER_MIN_YEAR=2022
+SCRAPER_MAX_YEAR=2024
+
+# Rating range
+SCRAPER_MIN_RATING=6.5
+SCRAPER_MAX_RATING=8.0
+
+# Disable all filters (get all popular content)
+SCRAPER_MIN_YEAR=None
+SCRAPER_MAX_YEAR=None
+SCRAPER_MIN_RATING=None
+SCRAPER_MAX_RATING=None
+```
 
 ### Example Configuration
 
