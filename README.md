@@ -45,8 +45,8 @@ A detailed version `top-list-detailed.json` includes additional metadata:
     "items": [
         {
             "title": "Superman",
-            "year": "2025",
-            "type": "movie"
+            "type": "movie",
+            "average_rating": 7.8
         }
     ]
 }
@@ -135,10 +135,10 @@ cp .env.example .env
 
 | Variable                       | Default                | Description                                   |
 | ------------------------------ | ---------------------- | --------------------------------------------- |
-| `SCRAPER_MAX_MOVIES`           | 25                     | Maximum number of movies to fetch (1-100)     |
-| `SCRAPER_MAX_TV_SHOWS`         | 25                     | Maximum number of TV shows to fetch (1-100)   |
-| `SCRAPER_MAX_TOTAL_ITEMS`      | 50                     | Maximum total items in final list (1-200)     |
-| `SCRAPER_MIN_YEAR`             | 2020                   | Minimum release year filter (None to disable) |
+| `SCRAPER_MAX_MOVIES`           | 50                     | Maximum number of movies to fetch (1-100)     |
+| `SCRAPER_MAX_TV_SHOWS`         | 50                     | Maximum number of TV shows to fetch (1-100)   |
+| `SCRAPER_MAX_TOTAL_ITEMS`      | 100                    | Maximum total items in final list (1-200)     |
+| `SCRAPER_MIN_YEAR`             | last 5 years           | Minimum release year filter (None to disable) |
 | `SCRAPER_MAX_YEAR`             | None                   | Maximum release year filter (None to disable) |
 | `SCRAPER_MIN_RATING`           | 6.0                    | Minimum user rating filter (None to disable)  |
 | `SCRAPER_MAX_RATING`           | None                   | Maximum user rating filter (None to disable)  |

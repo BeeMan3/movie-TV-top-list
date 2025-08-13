@@ -9,11 +9,11 @@ import re
 import time
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import Any, List, Optional, Union
 
 import requests
 from bs4 import BeautifulSoup
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,8 +28,10 @@ class ContentItem(BaseModel):
     """Represents a movie or TV show item."""
 
     title: str = Field(..., min_length=1, description="Title of the content")
-    year: Optional[str] = Field(None, description="Release year")
     type: ContentType = Field(..., description="Type of content")
+    average_rating: Optional[float] = Field(
+        default=None, description="Average user rating when available"
+    )
 
 
 class SimpleContentItem(BaseModel):
@@ -44,6 +46,54 @@ class DetailedOutput(BaseModel):
     last_updated: datetime = Field(default_factory=datetime.now)
     total_items: int = Field(..., ge=0)
     items: List[ContentItem] = Field(default_factory=list)
+
+
+class AggregateRating(BaseModel):
+    """Schema.org AggregateRating subset used by IMDB JSON-LD."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    type: Optional[str] = Field(default=None, alias="@type")
+    ratingValue: Optional[Union[str, float]] = None
+
+    def rating_value_as_float(self) -> Optional[float]:
+        if self.ratingValue is None:
+            return None
+        try:
+            return float(self.ratingValue)
+        except (TypeError, ValueError):
+            return None
+
+
+class LdItem(BaseModel):
+    """Minimal representation of Movie/TV item in JSON-LD."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    type: Optional[str] = Field(default=None, alias="@type")
+    name: Optional[str] = None
+    alternateName: Optional[str] = None
+    headline: Optional[str] = None
+    aggregateRating: Optional[AggregateRating] = None
+
+
+class LdListItem(BaseModel):
+    """ItemList element which usually wraps an `item`."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    type: Optional[str] = Field(default=None, alias="@type")
+    position: Optional[int] = None
+    item: Optional[Union[LdItem, dict]] = None
+
+
+class ItemListLD(BaseModel):
+    """JSON-LD ItemList wrapper shipped by IMDB pages."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    type: Optional[str] = Field(default=None, alias="@type")
+    itemListElement: List[Union[LdListItem, LdItem, dict]] = Field(default_factory=list)
 
 
 class ScraperConfig(BaseSettings):
@@ -181,6 +231,98 @@ class IMDBScraper:
             }
         )
 
+    def _extract_from_ld_json(
+        self, soup: BeautifulSoup, content_type: ContentType, max_items: int
+    ) -> List[ContentItem]:
+        """Extract items from JSON-LD ItemList with Pydantic validation."""
+        items: List[ContentItem] = []
+
+        def is_movie_type(value: Optional[str]) -> bool:
+            if not value:
+                return False
+            return value.lower() in {"movie", "videoobject", "creativework"}
+
+        def is_series_type(value: Optional[str]) -> bool:
+            if not value:
+                return False
+            return value.lower() in {"tvseries", "tvepisode", "tvseason", "tvshow"}
+
+        def type_matches(requested: ContentType, candidate_type: Optional[str]) -> bool:
+            if candidate_type is None:
+                return True
+            return (
+                is_movie_type(candidate_type)
+                if requested == ContentType.MOVIE
+                else is_series_type(candidate_type)
+            )
+
+        for script in soup.find_all("script", attrs={"type": "application/ld+json"}):
+            raw_text = script.get_text() or ""
+            if not raw_text.strip():
+                continue
+            try:
+                parsed = json.loads(raw_text)
+            except json.JSONDecodeError:
+                continue
+
+            blocks: List[Any] = parsed if isinstance(parsed, list) else [parsed]
+            for block in blocks:
+                if not isinstance(block, dict):
+                    continue
+                if block.get("@type") != "ItemList":
+                    continue
+                try:
+                    item_list = ItemListLD.model_validate(block)
+                except Exception:
+                    continue
+
+                for element in item_list.itemListElement:
+                    ld_item: Optional[LdItem] = None
+                    if isinstance(element, LdListItem):
+                        if isinstance(element.item, LdItem):
+                            ld_item = element.item
+                        elif isinstance(element.item, dict):
+                            try:
+                                ld_item = LdItem.model_validate(element.item)
+                            except Exception:
+                                ld_item = None
+                    elif isinstance(element, LdItem):
+                        ld_item = element
+                    elif isinstance(element, dict):
+                        try:
+                            ld_item = LdItem.model_validate(element)
+                        except Exception:
+                            ld_item = None
+
+                    if not ld_item:
+                        continue
+
+                    if not type_matches(content_type, ld_item.type):
+                        continue
+
+                    title = ld_item.name or ld_item.alternateName or ld_item.headline
+                    if not title:
+                        continue
+                    cleaned_title = re.sub(r"^\d+\.\s*", "", str(title).strip())
+
+                    rating = (
+                        ld_item.aggregateRating.rating_value_as_float()
+                        if ld_item.aggregateRating is not None
+                        else None
+                    )
+
+                    items.append(
+                        ContentItem(
+                            title=cleaned_title,
+                            type=content_type,
+                            average_rating=rating,
+                        )
+                    )
+                    if len(items) >= max_items:
+                        return items
+
+        return items
+
     def _extract_titles_from_elements(
         self, elements: List, content_type: ContentType, max_items: int
     ) -> List[ContentItem]:
@@ -208,7 +350,9 @@ class IMDBScraper:
                         break
 
                 if title and len(title) > 1:
-                    items.append(ContentItem(title=title, year="", type=content_type))
+                    items.append(
+                        ContentItem(title=title, type=content_type, average_rating=None)
+                    )
 
                     if len(items) >= max_items:
                         break
@@ -232,6 +376,12 @@ class IMDBScraper:
             print(f"Response status: {response.status_code}")
             soup = BeautifulSoup(response.content, "html.parser")
 
+            # First try to parse the embedded JSON-LD which contains the full list
+            ld_items = self._extract_from_ld_json(soup, content_type, max_items)
+            if ld_items:
+                print(f"Found {len(ld_items)} {content_type.value}s using JSON-LD")
+                return ld_items
+
             # Try multiple selectors for robustness
             selectors = [
                 "li.ipc-metadata-list-summary-item",
@@ -242,7 +392,8 @@ class IMDBScraper:
 
             elements = []
             for selector in selectors:
-                elements = soup.select(selector, limit=max_items)
+                # Do not limit here; we will cap after extraction
+                elements = soup.select(selector)
                 if elements:
                     print(
                         f"Found {len(elements)} {content_type.value}s using selector: {selector}"
