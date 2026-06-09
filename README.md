@@ -11,7 +11,7 @@ The list updates daily at 6:15 AM UTC using GitHub Actions.
 ## Features
 
 - **Daily Updates**: Automatically runs every day at 6:15 AM UTC
-- **No API Keys Required**: Uses web scraping from public IMDB pages
+- **No API Keys Required**: Uses browser-based scraping from public IMDB pages
 - **Combined List**: Merges movies and TV shows into a single ranked list
 - **Content Filtering**: Filter by release year and user rating for fresh, high-quality content
 - **Private Tracker Optimized**: Default filters target recent, well-rated content ideal for autobrr
@@ -20,7 +20,7 @@ The list updates daily at 6:15 AM UTC using GitHub Actions.
 - **Type Safe**: Built with Pydantic models and full type annotations
 - **Modular Architecture**: Clean separation of concerns with dedicated classes
 - **GitHub Pages Deployment**: Public URLs accessible via simple HTTP GET requests
-- **Robust Error Handling**: Retries transient fetch failures and fails explicitly
+- **Robust Error Handling**: Retries transient browser fetch failures and fails explicitly
 
 ## Output Format
 
@@ -76,6 +76,21 @@ A detailed version `top-list-detailed.json` includes additional metadata:
     - Go to the "Actions" tab
     - Click on "Update Top Movies and Series List"
     - Click "Run workflow" to test the setup
+
+### Local or Self-Hosted Setup
+
+Install Python dependencies and the Playwright Chromium browser before running the scraper outside GitHub-hosted Actions:
+
+```bash
+pip install -r requirements.txt
+python -m playwright install chromium
+```
+
+For Linux self-hosted runners or CI environments that need browser system packages, use:
+
+```bash
+python -m playwright install --with-deps chromium
+```
 
 ## Accessing the Data
 
@@ -141,8 +156,9 @@ cp .env.example .env
 | `SCRAPER_MAX_RATING`           | None                   | Maximum user rating filter (None to disable)              |
 | `SCRAPER_REQUEST_TIMEOUT`      | 15                     | Request timeout in seconds (5-60)                         |
 | `SCRAPER_REQUEST_DELAY`        | 2.0                    | Delay between requests in seconds (0.1-10.0)              |
-| `SCRAPER_REQUEST_RETRIES`      | 3                      | Number of fetch attempts before failing (1-10)            |
-| `SCRAPER_RETRY_DELAY`          | 2.0                    | Delay between failed fetch attempts in seconds (0.1-30.0) |
+| `SCRAPER_REQUEST_RETRIES`      | 3                      | Number of browser fetch attempts before failing (1-10)    |
+| `SCRAPER_RETRY_DELAY`          | 2.0                    | Delay between failed browser fetch attempts in seconds (0.1-30.0) |
+| `SCRAPER_BROWSER_HEADLESS`     | True                   | Run Chromium in headless mode                             |
 | `SCRAPER_SIMPLE_OUTPUT_FILE`   | top-list.json          | Simple output filename                                    |
 | `SCRAPER_DETAILED_OUTPUT_FILE` | top-list-detailed.json | Detailed output filename                                  |
 

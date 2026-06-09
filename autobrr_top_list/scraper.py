@@ -3,8 +3,10 @@ import re
 import time
 from typing import Any, List, Optional
 
-import requests
 from bs4 import BeautifulSoup
+from playwright.sync_api import Error as PlaywrightError
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import sync_playwright
 
 from .config import ScraperConfig
 from .models import ContentItem, ContentType, ItemListLD, LdItem, LdListItem
@@ -17,17 +19,6 @@ class ScraperError(RuntimeError):
 class IMDBScraper:
     def __init__(self, config: ScraperConfig):
         self.config = config
-        self.session = requests.Session()
-        self.session.headers.update(
-            {
-                "User-Agent": config.user_agent,
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.5",
-                "Accept-Encoding": "gzip, deflate, br",
-                "Connection": "keep-alive",
-                "Upgrade-Insecure-Requests": "1",
-            }
-        )
 
     def _extract_from_ld_json(
         self, soup: BeautifulSoup, content_type: ContentType, max_items: int
@@ -150,9 +141,9 @@ class IMDBScraper:
     def _scrape_imdb_list(
         self, url: str, content_type: ContentType, max_items: int
     ) -> List[ContentItem]:
-        response = self._get_with_retries(url, content_type)
+        html = self._fetch_rendered_html(url, content_type)
 
-        soup = BeautifulSoup(response.content, "html.parser")
+        soup = BeautifulSoup(html, "html.parser")
         if not soup.find("body"):
             raise ScraperError(
                 f"IMDb {content_type.value} page did not contain a valid HTML body: {url}"
@@ -192,26 +183,70 @@ class IMDBScraper:
             )
         return items
 
-    def _get_with_retries(self, url: str, content_type: ContentType) -> requests.Response:
+    def _fetch_rendered_html(self, url: str, content_type: ContentType) -> str:
         last_error: Optional[Exception] = None
         for attempt in range(1, self.config.request_retries + 1):
             try:
-                response = self.session.get(str(url), timeout=self.config.request_timeout)
-                response.raise_for_status()
-                return response
-            except requests.RequestException as exc:
+                return self._render_page(url)
+            except (PlaywrightError, PlaywrightTimeoutError) as exc:
                 last_error = exc
                 if attempt >= self.config.request_retries:
                     break
                 print(
-                    f"Fetch failed for IMDb {content_type.value} page "
+                    f"Browser fetch failed for IMDb {content_type.value} page "
                     f"(attempt {attempt}/{self.config.request_retries}): {exc}. Retrying..."
                 )
                 time.sleep(self.config.retry_delay)
 
         raise ScraperError(
-            f"Failed to fetch IMDb {content_type.value} page after {self.config.request_retries} attempts: {url}"
+            f"Failed to render IMDb {content_type.value} page after {self.config.request_retries} attempts: {url}"
         ) from last_error
+
+    def _render_page(self, url: str) -> str:
+        timeout_ms = self.config.request_timeout * 1000
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=self.config.browser_headless)
+            context = None
+            page = None
+            try:
+                context = browser.new_context(
+                    user_agent=self.config.user_agent,
+                    locale="en-US",
+                    viewport={"width": 1365, "height": 900},
+                )
+                page = context.new_page()
+                deadline = time.monotonic() + self.config.request_timeout
+                response = page.goto(
+                    str(url), wait_until="domcontentloaded", timeout=timeout_ms
+                )
+                if response is not None and response.status >= 400:
+                    raise PlaywrightError(
+                        f"IMDb returned HTTP {response.status} for {url}"
+                    )
+
+                ready_selector = ", ".join(
+                    [
+                        "#challenge-container",
+                        "li.ipc-metadata-list-summary-item",
+                        "li.titleColumn",
+                        ".cli-title-link",
+                        ".ipc-title-link-wrapper",
+                    ]
+                )
+                try:
+                    remaining_timeout_ms = max(
+                        1, int((deadline - time.monotonic()) * 1000)
+                    )
+                    page.wait_for_selector(ready_selector, timeout=remaining_timeout_ms)
+                except PlaywrightTimeoutError:
+                    pass
+                return page.content()
+            finally:
+                if page is not None:
+                    page.close()
+                if context is not None:
+                    context.close()
+                browser.close()
 
     @staticmethod
     def _is_bot_challenge(soup: BeautifulSoup) -> bool:
