@@ -10,17 +10,17 @@ The list updates daily at 6:15 AM UTC using GitHub Actions.
 
 ## Features
 
--   **Daily Updates**: Automatically runs every day at 6:15 AM UTC
--   **No API Keys Required**: Uses web scraping from public IMDB pages
--   **Combined List**: Merges movies and TV shows into a single ranked list
--   **Content Filtering**: Filter by release year and user rating for fresh, high-quality content
--   **Private Tracker Optimized**: Default filters target recent, well-rated content ideal for autobrr
--   **Simple Output Format**: Clean JSON format with just titles
--   **Configurable**: Fully configurable via environment variables or .env file
--   **Type Safe**: Built with Pydantic models and full type annotations
--   **Modular Architecture**: Clean separation of concerns with dedicated classes
--   **GitHub Pages Deployment**: Public URLs accessible via simple HTTP GET requests
--   **Robust Error Handling**: Graceful failure with empty output on scraping errors
+- **Daily Updates**: Automatically runs every day at 6:15 AM UTC
+- **No API Keys Required**: Uses web scraping from public IMDB pages
+- **Combined List**: Merges movies and TV shows into a single ranked list
+- **Content Filtering**: Filter by release year and user rating for fresh, high-quality content
+- **Private Tracker Optimized**: Default filters target recent, well-rated content ideal for autobrr
+- **Simple Output Format**: Clean JSON format with just titles
+- **Configurable**: Fully configurable via environment variables or .env file
+- **Type Safe**: Built with Pydantic models and full type annotations
+- **Modular Architecture**: Clean separation of concerns with dedicated classes
+- **GitHub Pages Deployment**: Public URLs accessible via simple HTTP GET requests
+- **Robust Error Handling**: Retries transient fetch failures and fails explicitly
 
 ## Output Format
 
@@ -57,19 +57,16 @@ A detailed version `top-list-detailed.json` includes additional metadata:
 1. **Fork this repository** to your GitHub account
 
 2. **Enable GitHub Actions** in your repository:
-
     - Go to the "Actions" tab in your repository
     - If prompted, click "I understand my workflows, go ahead and enable them"
 
 3. **Configure repository permissions**:
-
     - Go to Settings → Actions → General
     - Under "Workflow permissions", select "Read and write permissions"
     - Check "Allow GitHub Actions to create and approve pull requests"
     - Click "Save"
 
 4. **Enable GitHub Pages**:
-
     - Go to Settings → Pages
     - Under "Source", select "Deploy from a branch"
     - Choose "gh-pages" branch and "/ (root)" folder
@@ -88,9 +85,9 @@ The generated JSON files are automatically deployed to **GitHub Pages** and acce
 
 Once you've set up the repository, the data will be available at:
 
--   **Simple List**: `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list.json`
--   **Detailed List**: `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list-detailed.json`
--   **Web Interface**: `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/`
+- **Simple List**: `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list.json`
+- **Detailed List**: `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list-detailed.json`
+- **Web Interface**: `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/`
 
 ### Direct API Access
 
@@ -133,19 +130,21 @@ cp .env.example .env
 
 ### Available Configuration Options
 
-| Variable                       | Default                | Description                                   |
-| ------------------------------ | ---------------------- | --------------------------------------------- |
-| `SCRAPER_MAX_MOVIES`           | 50                     | Maximum number of movies to fetch (1-100)     |
-| `SCRAPER_MAX_TV_SHOWS`         | 50                     | Maximum number of TV shows to fetch (1-100)   |
-| `SCRAPER_MAX_TOTAL_ITEMS`      | 100                    | Maximum total items in final list (1-200)     |
-| `SCRAPER_MIN_YEAR`             | last 5 years           | Minimum release year filter (None to disable) |
-| `SCRAPER_MAX_YEAR`             | None                   | Maximum release year filter (None to disable) |
-| `SCRAPER_MIN_RATING`           | 6.0                    | Minimum user rating filter (None to disable)  |
-| `SCRAPER_MAX_RATING`           | None                   | Maximum user rating filter (None to disable)  |
-| `SCRAPER_REQUEST_TIMEOUT`      | 15                     | Request timeout in seconds (5-60)             |
-| `SCRAPER_REQUEST_DELAY`        | 2.0                    | Delay between requests in seconds (0.1-10.0)  |
-| `SCRAPER_SIMPLE_OUTPUT_FILE`   | top-list.json          | Simple output filename                        |
-| `SCRAPER_DETAILED_OUTPUT_FILE` | top-list-detailed.json | Detailed output filename                      |
+| Variable                       | Default                | Description                                               |
+| ------------------------------ | ---------------------- | --------------------------------------------------------- |
+| `SCRAPER_MAX_MOVIES`           | 50                     | Maximum number of movies to fetch (1-100)                 |
+| `SCRAPER_MAX_TV_SHOWS`         | 50                     | Maximum number of TV shows to fetch (1-100)               |
+| `SCRAPER_MAX_TOTAL_ITEMS`      | 100                    | Maximum total items in final list (1-200)                 |
+| `SCRAPER_MIN_YEAR`             | last 5 years           | Minimum release year filter (None to disable)             |
+| `SCRAPER_MAX_YEAR`             | None                   | Maximum release year filter (None to disable)             |
+| `SCRAPER_MIN_RATING`           | 6.0                    | Minimum user rating filter (None to disable)              |
+| `SCRAPER_MAX_RATING`           | None                   | Maximum user rating filter (None to disable)              |
+| `SCRAPER_REQUEST_TIMEOUT`      | 15                     | Request timeout in seconds (5-60)                         |
+| `SCRAPER_REQUEST_DELAY`        | 2.0                    | Delay between requests in seconds (0.1-10.0)              |
+| `SCRAPER_REQUEST_RETRIES`      | 3                      | Number of fetch attempts before failing (1-10)            |
+| `SCRAPER_RETRY_DELAY`          | 2.0                    | Delay between failed fetch attempts in seconds (0.1-30.0) |
+| `SCRAPER_SIMPLE_OUTPUT_FILE`   | top-list.json          | Simple output filename                                    |
+| `SCRAPER_DETAILED_OUTPUT_FILE` | top-list-detailed.json | Detailed output filename                                  |
 
 ### Content Filtering
 
@@ -204,8 +203,8 @@ SCRAPER_DETAILED_OUTPUT_FILE=my-detailed-list.json
 
 ## Data Sources
 
--   **IMDB Most Popular Movies**: https://www.imdb.com/chart/moviemeter/
--   **IMDB Most Popular TV Shows**: https://www.imdb.com/chart/tvmeter/
+- **IMDB Most Popular Movies**: https://www.imdb.com/chart/moviemeter/
+- **IMDB Most Popular TV Shows**: https://www.imdb.com/chart/tvmeter/
 
 These lists are updated by IMDB based on user activity and page views, providing a good indicator of current popularity.
 
@@ -213,7 +212,7 @@ These lists are updated by IMDB based on user activity and page views, providing
 
 ### No Data Fetched
 
-If scraping fails, the script will output empty arrays to ensure the files are always valid JSON. Check the GitHub Actions logs for error details.
+If scraping fails, the script exits non-zero and refuses to overwrite the existing output files with empty arrays. Check the GitHub Actions logs for the fatal error; common causes are blocked runner IPs, HTTP errors, or IMDb page layout changes.
 
 ### Workflow Not Running
 
@@ -226,13 +225,11 @@ If scraping fails, the script will output empty arrays to ensure the files are a
 If you get a "Permission denied" error when the workflow tries to push to gh-pages:
 
 1. **Check Repository Settings**:
-
     - Go to Settings → Actions → General
     - Under "Workflow permissions", select "Read and write permissions"
     - Save the settings
 
 2. **Verify GitHub Pages Configuration**:
-
     - Go to Settings → Pages
     - Ensure "Deploy from a branch" is selected
     - Choose "gh-pages" as the source branch
@@ -250,18 +247,18 @@ The script includes delays between requests to be respectful to IMDB's servers. 
 
 This project scrapes publicly available data from IMDB for personal/educational use. Please ensure compliance with:
 
--   IMDB's terms of service
--   Rate limiting (built into the script)
--   Fair use principles
+- IMDB's terms of service
+- Rate limiting (built into the script)
+- Fair use principles
 
 ## Contributing
 
 Feel free to submit issues or pull requests to improve the project. Some ideas:
 
--   Add more data sources
--   Improve error handling
--   Add filtering options
--   Include additional metadata
+- Add more data sources
+- Improve error handling
+- Add filtering options
+- Include additional metadata
 
 ## License
 

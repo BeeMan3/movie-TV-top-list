@@ -1,5 +1,6 @@
 import json
 import re
+import time
 from typing import Any, List, Optional
 
 import requests
@@ -7,6 +8,10 @@ from bs4 import BeautifulSoup
 
 from .config import ScraperConfig
 from .models import ContentItem, ContentType, ItemListLD, LdItem, LdListItem
+
+
+class ScraperError(RuntimeError):
+    """Raised when IMDb content cannot be fetched or parsed safely."""
 
 
 class IMDBScraper:
@@ -145,10 +150,18 @@ class IMDBScraper:
     def _scrape_imdb_list(
         self, url: str, content_type: ContentType, max_items: int
     ) -> List[ContentItem]:
-        response = self.session.get(str(url), timeout=self.config.request_timeout)
-        response.raise_for_status()
+        response = self._get_with_retries(url, content_type)
 
         soup = BeautifulSoup(response.content, "html.parser")
+        if not soup.find("body"):
+            raise ScraperError(
+                f"IMDb {content_type.value} page did not contain a valid HTML body: {url}"
+            )
+        if self._is_bot_challenge(soup):
+            raise ScraperError(
+                f"IMDb {content_type.value} page returned a bot challenge instead of chart HTML; "
+                f"the runner IP or request fingerprint is likely blocked: {url}"
+            )
 
         ld_items = self._extract_from_ld_json(soup, content_type, max_items)
         if ld_items:
@@ -168,9 +181,46 @@ class IMDBScraper:
                 break
 
         if not elements:
-            return []
+            raise ScraperError(
+                f"IMDb {content_type.value} page layout was not recognized: no known list selectors matched {url}"
+            )
 
-        return self._extract_titles_from_elements(elements, content_type, max_items)
+        items = self._extract_titles_from_elements(elements, content_type, max_items)
+        if not items:
+            raise ScraperError(
+                f"IMDb {content_type.value} page matched list containers but no titles could be extracted: {url}"
+            )
+        return items
+
+    def _get_with_retries(self, url: str, content_type: ContentType) -> requests.Response:
+        last_error: Optional[Exception] = None
+        for attempt in range(1, self.config.request_retries + 1):
+            try:
+                response = self.session.get(str(url), timeout=self.config.request_timeout)
+                response.raise_for_status()
+                return response
+            except requests.RequestException as exc:
+                last_error = exc
+                if attempt >= self.config.request_retries:
+                    break
+                print(
+                    f"Fetch failed for IMDb {content_type.value} page "
+                    f"(attempt {attempt}/{self.config.request_retries}): {exc}. Retrying..."
+                )
+                time.sleep(self.config.retry_delay)
+
+        raise ScraperError(
+            f"Failed to fetch IMDb {content_type.value} page after {self.config.request_retries} attempts: {url}"
+        ) from last_error
+
+    @staticmethod
+    def _is_bot_challenge(soup: BeautifulSoup) -> bool:
+        page_text = soup.get_text(" ", strip=True).lower()
+        return bool(
+            soup.select_one("#challenge-container")
+            or soup.find("script", src=re.compile(r"token\.awswaf\.com|challenge\.js"))
+            or "verify that you're not a robot" in page_text
+        )
 
     def fetch_popular_movies(self) -> List[ContentItem]:
         return self._scrape_imdb_list(

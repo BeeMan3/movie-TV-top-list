@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """CLI entrypoint for Autobrr Top List scraper."""
 
+import sys
 import time
 
 from autobrr_top_list import (
@@ -40,19 +41,28 @@ def main() -> None:
     processor = ContentProcessor()
     output_manager = OutputManager(config)
 
-    try:
-        movies = scraper.fetch_popular_movies()
-        time.sleep(config.request_delay)
-        tv_shows = scraper.fetch_popular_tv_shows()
-        print(f"Found {len(movies)} movies and {len(tv_shows)} TV shows")
-        combined_list = processor.combine_and_rank_lists(
-            movies, tv_shows, config.max_total_items
-        )
-        output_manager.save_outputs(combined_list)
-    except Exception as e:
-        print(f"Error during execution: {e}")
-        output_manager.save_outputs([])
+    movies = scraper.fetch_popular_movies()
+    time.sleep(config.request_delay)
+    tv_shows = scraper.fetch_popular_tv_shows()
+    print(f"Found {len(movies)} movies and {len(tv_shows)} TV shows")
+
+    if not movies:
+        raise RuntimeError("IMDb movie scrape returned zero items")
+    if not tv_shows:
+        raise RuntimeError("IMDb TV scrape returned zero items")
+
+    combined_list = processor.combine_and_rank_lists(
+        movies, tv_shows, config.max_total_items
+    )
+    if not combined_list:
+        raise RuntimeError("Combined output is empty; refusing to overwrite outputs")
+
+    output_manager.save_outputs(combined_list)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"Fatal error: {e}", file=sys.stderr)
+        raise SystemExit(1) from e

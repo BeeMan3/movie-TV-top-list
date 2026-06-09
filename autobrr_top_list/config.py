@@ -27,6 +27,8 @@ class ScraperConfig(BaseSettings):
 
     request_timeout: int = Field(default=15, ge=5, le=60)
     request_delay: float = Field(default=2.0, ge=0.1, le=10.0)
+    request_retries: int = Field(default=3, ge=1, le=10)
+    retry_delay: float = Field(default=2.0, ge=0.1, le=30.0)
 
     imdb_movies_base_url: str = Field(default="https://www.imdb.com/chart/moviemeter/")
     imdb_tv_base_url: str = Field(default="https://www.imdb.com/chart/tvmeter/")

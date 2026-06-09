@@ -11,7 +11,7 @@ from .models import (
     LdListItem,
     ItemListLD,
 )
-from .scraper import IMDBScraper
+from .scraper import IMDBScraper, ScraperError
 from .processor import ContentProcessor
 from .output import OutputManager
 
@@ -26,6 +26,7 @@ __all__ = [
     "LdListItem",
     "ItemListLD",
     "IMDBScraper",
+    "ScraperError",
     "ContentProcessor",
     "OutputManager",
 ]
