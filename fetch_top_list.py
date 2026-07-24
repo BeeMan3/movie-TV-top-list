@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""CLI entrypoint for Autobrr Top List scraper."""
+"""CLI entrypoint for Autobrr Top List updater."""
 
 import sys
 import time
 
 from autobrr_top_list import (
     ContentProcessor,
-    IMDBScraper,
     OutputManager,
     ScraperConfig,
+    TMDbClient,
 )
 
 
@@ -32,24 +32,23 @@ def main() -> None:
 
     if filters_applied:
         print(f"Active filters: {', '.join(filters_applied)}")
-        print(f"Movies URL: {config.imdb_movies_url}")
-        print(f"TV Shows URL: {config.imdb_tv_url}")
+        print(f"Source: TMDb {config.tmdb_trending_window} trending lists")
     else:
         print("No filters applied - fetching all popular content")
 
-    scraper = IMDBScraper(config)
+    client = TMDbClient(config)
     processor = ContentProcessor()
     output_manager = OutputManager(config)
 
-    movies = scraper.fetch_popular_movies()
+    movies = client.fetch_popular_movies()
     time.sleep(config.request_delay)
-    tv_shows = scraper.fetch_popular_tv_shows()
+    tv_shows = client.fetch_popular_tv_shows()
     print(f"Found {len(movies)} movies and {len(tv_shows)} TV shows")
 
     if not movies:
-        raise RuntimeError("IMDb movie scrape returned zero items")
+        raise RuntimeError("TMDb movie trending list returned zero matching items")
     if not tv_shows:
-        raise RuntimeError("IMDb TV scrape returned zero items")
+        raise RuntimeError("TMDb TV trending list returned zero matching items")
 
     combined_list = processor.combine_and_rank_lists(
         movies, tv_shows, config.max_total_items

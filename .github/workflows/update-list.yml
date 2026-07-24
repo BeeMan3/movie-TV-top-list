@@ -28,10 +28,10 @@ jobs:
               run: |
                   python -m pip install --upgrade pip
                   pip install -r requirements.txt
-                  python -m playwright install --with-deps chromium
 
             - name: Fetch latest movies and series
               env:
+                  TMDB_READ_ACCESS_TOKEN: ${{ secrets.TMDB_READ_ACCESS_TOKEN }}
                   SCRAPER_MAX_MOVIES: ${{ vars.SCRAPER_MAX_MOVIES }}
                   SCRAPER_MAX_TV_SHOWS: ${{ vars.SCRAPER_MAX_TV_SHOWS }}
                   SCRAPER_MAX_TOTAL_ITEMS: ${{ vars.SCRAPER_MAX_TOTAL_ITEMS }}

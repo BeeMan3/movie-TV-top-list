@@ -2,31 +2,23 @@
 
 from .config import ScraperConfig
 from .models import (
-    ContentType,
     ContentItem,
-    SimpleContentItem,
+    ContentType,
     DetailedOutput,
-    AggregateRating,
-    LdItem,
-    LdListItem,
-    ItemListLD,
+    SimpleContentItem,
 )
-from .scraper import IMDBScraper, ScraperError
-from .processor import ContentProcessor
 from .output import OutputManager
+from .processor import ContentProcessor
+from .scraper import TMDbClient, TMDbError
 
 __all__ = [
-    "ScraperConfig",
-    "ContentType",
     "ContentItem",
-    "SimpleContentItem",
-    "DetailedOutput",
-    "AggregateRating",
-    "LdItem",
-    "LdListItem",
-    "ItemListLD",
-    "IMDBScraper",
-    "ScraperError",
     "ContentProcessor",
+    "ContentType",
+    "DetailedOutput",
     "OutputManager",
+    "ScraperConfig",
+    "SimpleContentItem",
+    "TMDbClient",
+    "TMDbError",
 ]

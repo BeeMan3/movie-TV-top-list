@@ -1,26 +1,18 @@
 # Autobrr Top List
 
-An automated system that fetches and maintains a list of the top 50 recent movies and series, updated daily via GitHub Actions.
+A daily-updated list of recent trending movies and TV shows, built from the [TMDb API](https://developer.themoviedb.org/) and published to GitHub Pages.
 
-## Overview
+It's designed as a data source for [autobrr](https://autobrr.com) filter automation: point a filter at the published JSON and it stays current with recently released, well-rated titles.
 
-This project automatically scrapes IMDB's "Most Popular Movies" and "Most Popular TV Shows" lists to create a combined ranking of the top 50 entertainment titles.
-The list's primary purpose is to be used for autobrr filter automation.
-The list updates daily at 6:15 AM UTC using GitHub Actions.
+## How it works
 
-## Features
+A GitHub Actions workflow runs every day at 06:15 UTC and:
 
-- **Daily Updates**: Automatically runs every day at 6:15 AM UTC
-- **No API Keys Required**: Uses browser-based scraping from public IMDB pages
-- **Combined List**: Merges movies and TV shows into a single ranked list
-- **Content Filtering**: Filter by release year and user rating for fresh, high-quality content
-- **Private Tracker Optimized**: Default filters target recent, well-rated content ideal for autobrr
-- **Simple Output Format**: Clean JSON format with just titles
-- **Configurable**: Fully configurable via environment variables or .env file
-- **Type Safe**: Built with Pydantic models and full type annotations
-- **Modular Architecture**: Clean separation of concerns with dedicated classes
-- **GitHub Pages Deployment**: Public URLs accessible via simple HTTP GET requests
-- **Robust Error Handling**: Retries transient browser fetch failures and fails explicitly
+1. Fetches TMDb's trending movie and TV lists (weekly window by default).
+2. Filters entries by release year and user rating.
+3. Interleaves movies and shows into a single ranked list.
+4. Writes both a simple and a detailed JSON file.
+5. Deploys the files to GitHub Pages.
 
 ## Output Format
 
@@ -36,137 +28,96 @@ The main output file `top-list.json` contains a simple array of objects:
 ]
 ```
 
-A detailed version `top-list-detailed.json` includes additional metadata:
+The detailed file `top-list-detailed.json` includes metadata and a timestamp:
 
 ```json
 {
-    "last_updated": "2025-01-08T15:30:00.000Z",
-    "total_items": 50,
+    "last_updated": "2025-01-08T15:30:00.000000",
+    "total_items": 100,
     "items": [
         {
             "title": "Superman",
             "type": "movie",
             "average_rating": 7.8
+        },
+        {
+            "title": "Squid Game",
+            "type": "series",
+            "average_rating": 7.9
         }
     ]
 }
 ```
 
-## Setup Instructions
+## Setup
 
-1. **Fork this repository** to your GitHub account
+You'll need a TMDb credential. Create a free non-commercial one at <https://www.themoviedb.org/settings/api> and copy the **API Read Access Token** (v4). A legacy v3 API key also works.
 
-2. **Enable GitHub Actions** in your repository:
-    - Go to the "Actions" tab in your repository
-    - If prompted, click "I understand my workflows, go ahead and enable them"
+### Run it yourself on GitHub
 
-3. **Configure repository permissions**:
-    - Go to Settings → Actions → General
-    - Under "Workflow permissions", select "Read and write permissions"
-    - Check "Allow GitHub Actions to create and approve pull requests"
-    - Click "Save"
+1. **Fork this repository.**
+2. **Add the TMDb token.** Settings → Secrets and variables → Actions → New repository secret, named `TMDB_READ_ACCESS_TOKEN`.
+3. **Grant workflow permissions.** Settings → Actions → General → Workflow permissions → "Read and write permissions", then save.
+4. **Enable GitHub Pages.** Settings → Pages → Source: "Deploy from a branch", branch `gh-pages`, folder `/ (root)`. The workflow creates the `gh-pages` branch on its first run.
+5. **Trigger a run** (optional). Actions tab → "Update Top Movies and Series List" → "Run workflow".
 
-4. **Enable GitHub Pages**:
-    - Go to Settings → Pages
-    - Under "Source", select "Deploy from a branch"
-    - Choose "gh-pages" branch and "/ (root)" folder
-    - Click "Save"
+Optionally override `SCRAPER_MAX_MOVIES`, `SCRAPER_MAX_TV_SHOWS`, and `SCRAPER_MAX_TOTAL_ITEMS` as Actions repository variables. See [Configuration](#configuration) for the full list.
 
-5. **Manual trigger** (optional):
-    - Go to the "Actions" tab
-    - Click on "Update Top Movies and Series List"
-    - Click "Run workflow" to test the setup
-
-### Local or Self-Hosted Setup
-
-Install Python dependencies and the Playwright Chromium browser before running the scraper outside GitHub-hosted Actions:
+### Run it locally
 
 ```bash
 pip install -r requirements.txt
-python -m playwright install chromium
+TMDB_READ_ACCESS_TOKEN=your-token python fetch_top_list.py
 ```
 
-For Linux self-hosted runners or CI environments that need browser system packages, use:
-
-```bash
-python -m playwright install --with-deps chromium
-```
+This writes `top-list.json` and `top-list-detailed.json` to the current directory.
 
 ## Accessing the Data
 
-The generated JSON files are automatically deployed to **GitHub Pages** and accessible via direct URLs:
+The JSON files are deployed to GitHub Pages and always reflect the latest run — no authentication or downloading required. After setup they're available at:
 
-### Public URLs
+- Simple list: `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list.json`
+- Detailed list: `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list-detailed.json`
+- Web interface: `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/`
 
-Once you've set up the repository, the data will be available at:
-
-- **Simple List**: `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list.json`
-- **Detailed List**: `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list-detailed.json`
-- **Web Interface**: `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/`
-
-### Direct API Access
-
-You can fetch the data directly with any HTTP client:
+Fetch them with any HTTP client:
 
 ```bash
-# Get the simple list
 curl https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list.json
-
-# Get the detailed list
-curl https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list-detailed.json
 ```
-
-### Example Usage
-
-```javascript
-// Fetch in JavaScript
-fetch("https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list.json")
-    .then((response) => response.json())
-    .then((data) => console.log(data));
-```
-
-```python
-# Fetch in Python
-import requests
-response = requests.get('https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/top-list.json')
-data = response.json()
-```
-
-**The URLs always point to the latest data** - no authentication, downloading, or unpacking required!
 
 ## Configuration
 
-The scraper is fully configurable via environment variables. Create a `.env` file in the root directory to customize settings:
+Everything is configured through environment variables, which can also be set in a `.env` file. Copy the example to get started:
 
 ```bash
-# Copy the example configuration
 cp .env.example .env
 ```
 
-### Available Configuration Options
+Provide exactly one TMDb credential. `TMDB_READ_ACCESS_TOKEN` (v4) is sent as an `Authorization: Bearer` header and is preferred; `TMDB_API_KEY` (legacy v3) is sent as an `api_key` query parameter.
 
-| Variable                       | Default                | Description                                               |
-| ------------------------------ | ---------------------- | --------------------------------------------------------- |
-| `SCRAPER_MAX_MOVIES`           | 50                     | Maximum number of movies to fetch (1-100)                 |
-| `SCRAPER_MAX_TV_SHOWS`         | 50                     | Maximum number of TV shows to fetch (1-100)               |
-| `SCRAPER_MAX_TOTAL_ITEMS`      | 100                    | Maximum total items in final list (1-200)                 |
-| `SCRAPER_MIN_YEAR`             | last 5 years           | Minimum release year filter (None to disable)             |
-| `SCRAPER_MAX_YEAR`             | None                   | Maximum release year filter (None to disable)             |
-| `SCRAPER_MIN_RATING`           | 6.0                    | Minimum user rating filter (None to disable)              |
-| `SCRAPER_MAX_RATING`           | None                   | Maximum user rating filter (None to disable)              |
-| `SCRAPER_REQUEST_TIMEOUT`      | 15                     | Request timeout in seconds (5-60)                         |
-| `SCRAPER_REQUEST_DELAY`        | 2.0                    | Delay between requests in seconds (0.1-10.0)              |
-| `SCRAPER_REQUEST_RETRIES`      | 3                      | Number of browser fetch attempts before failing (1-10)    |
-| `SCRAPER_RETRY_DELAY`          | 2.0                    | Delay between failed browser fetch attempts in seconds (0.1-30.0) |
-| `SCRAPER_BROWSER_HEADLESS`     | True                   | Run Chromium in headless mode                             |
-| `SCRAPER_SIMPLE_OUTPUT_FILE`   | top-list.json          | Simple output filename                                    |
-| `SCRAPER_DETAILED_OUTPUT_FILE` | top-list-detailed.json | Detailed output filename                                  |
+| Variable                       | Default                | Description                                             |
+| ------------------------------ | ---------------------- | ------------------------------------------------------- |
+| `SCRAPER_MAX_MOVIES`           | 50                     | Maximum number of movies to fetch (1-100)               |
+| `SCRAPER_MAX_TV_SHOWS`         | 50                     | Maximum number of TV shows to fetch (1-100)             |
+| `SCRAPER_MAX_TOTAL_ITEMS`      | 100                    | Maximum total items in final list (1-200)               |
+| `SCRAPER_MIN_YEAR`             | last 5 years           | Minimum release year filter (None to disable)           |
+| `SCRAPER_MAX_YEAR`             | None                   | Maximum release year filter (None to disable)           |
+| `SCRAPER_MIN_RATING`           | 6.0                    | Minimum user rating filter (None to disable)            |
+| `SCRAPER_MAX_RATING`           | None                   | Maximum user rating filter (None to disable)            |
+| `SCRAPER_REQUEST_TIMEOUT`      | 15                     | Request timeout in seconds (5-60)                       |
+| `SCRAPER_REQUEST_DELAY`        | 2.0                    | Delay between TMDb pages (0.1-10.0)                     |
+| `SCRAPER_REQUEST_RETRIES`      | 3                      | Number of API request attempts before failing (1-10)    |
+| `SCRAPER_RETRY_DELAY`          | 2.0                    | Delay between failed API attempts in seconds (0.1-30.0) |
+| `TMDB_READ_ACCESS_TOKEN`       | required               | TMDb API Read Access Token (v4), preferred credential   |
+| `TMDB_API_KEY`                 | required               | Legacy TMDb v3 API key (alternative to the token)       |
+| `SCRAPER_TMDB_TRENDING_WINDOW` | week                   | TMDb trending window: `day` or `week`                   |
+| `SCRAPER_SIMPLE_OUTPUT_FILE`   | top-list.json          | Simple output filename                                  |
+| `SCRAPER_DETAILED_OUTPUT_FILE` | top-list-detailed.json | Detailed output filename                                |
 
-### Content Filtering
+### Content filtering
 
-The scraper supports filtering content by release year and user rating to ensure only fresh, high-quality content is included - perfect for private tracker optimization:
-
-**Filter Examples:**
+Results are filtered by release year and user rating, so the list stays focused on recent, well-rated titles. Each filter can be disabled by setting it to `None`.
 
 ```env
 # Only very recent content (last 2 years)
@@ -185,14 +136,14 @@ SCRAPER_MAX_YEAR=2024
 SCRAPER_MIN_RATING=6.5
 SCRAPER_MAX_RATING=8.0
 
-# Disable all filters (get all popular content)
+# Disable all filters (all trending content)
 SCRAPER_MIN_YEAR=None
 SCRAPER_MAX_YEAR=None
 SCRAPER_MIN_RATING=None
 SCRAPER_MAX_RATING=None
 ```
 
-### Example Configuration
+### Example configuration
 
 ```env
 # Fetch more content
@@ -200,7 +151,10 @@ SCRAPER_MAX_MOVIES=40
 SCRAPER_MAX_TV_SHOWS=40
 SCRAPER_MAX_TOTAL_ITEMS=75
 
-# Slower, more respectful scraping
+# TMDb trending window; weekly is the default for sustained release interest
+SCRAPER_TMDB_TRENDING_WINDOW=week
+
+# Slower API pagination
 SCRAPER_REQUEST_TIMEOUT=20
 SCRAPER_REQUEST_DELAY=3.0
 
@@ -209,73 +163,35 @@ SCRAPER_SIMPLE_OUTPUT_FILE=my-top-list.json
 SCRAPER_DETAILED_OUTPUT_FILE=my-detailed-list.json
 ```
 
-## How It Works
+## Data source
 
-1. **Scraping**: The script fetches data from IMDB's popular movies and TV shows charts
-2. **Processing**: Removes ranking numbers, extracts clean titles
-3. **Combining**: Interleaves movies and TV shows for variety
-4. **Output**: Generates both simple and detailed JSON files
-5. **Automation**: GitHub Actions deploys the files to GitHub Pages daily
+The list is built from two TMDb endpoints:
 
-## Data Sources
+- [Trending Movies](https://developer.themoviedb.org/reference/trending-movies)
+- [Trending TV](https://developer.themoviedb.org/reference/trending-tv)
 
-- **IMDB Most Popular Movies**: https://www.imdb.com/chart/moviemeter/
-- **IMDB Most Popular TV Shows**: https://www.imdb.com/chart/tvmeter/
-
-These lists are updated by IMDB based on user activity and page views, providing a good indicator of current popularity.
+This product uses the TMDb API but is not endorsed or certified by TMDb. The free credential is for non-commercial use; review TMDb's terms, attribution requirements, and licensing at <https://developer.themoviedb.org/docs/faq>.
 
 ## Troubleshooting
 
-### No Data Fetched
+### No data fetched
 
-If scraping fails, the script exits non-zero and refuses to overwrite the existing output files with empty arrays. Check the GitHub Actions logs for the fatal error; common causes are blocked runner IPs, HTTP errors, or IMDb page layout changes.
+If a fetch fails, the updater exits non-zero and leaves the existing output files untouched rather than overwriting them with empty arrays. Check the Actions logs for the error — usually a missing or invalid credential, an HTTP error, or a temporary TMDb outage (see the [status page](https://status.themoviedb.org/)). Transient failures are retried per `SCRAPER_REQUEST_RETRIES` and `SCRAPER_RETRY_DELAY`.
 
-### Workflow Not Running
+### Workflow not running
 
-1. Ensure GitHub Actions are enabled in your repository
-2. Check that workflow permissions are set to "Read and write"
-3. Verify the repository is not private (or you have GitHub Pro for private repos)
+1. Ensure GitHub Actions are enabled in your repository.
+2. Check that workflow permissions are set to "Read and write".
+3. Verify the repository is public (or you have GitHub Pro for private Pages).
 
-### Permission Denied Error (403)
+### Permission denied (403)
 
-If you get a "Permission denied" error when the workflow tries to push to gh-pages:
+If the workflow can't push to `gh-pages`:
 
-1. **Check Repository Settings**:
-    - Go to Settings → Actions → General
-    - Under "Workflow permissions", select "Read and write permissions"
-    - Save the settings
-
-2. **Verify GitHub Pages Configuration**:
-    - Go to Settings → Pages
-    - Ensure "Deploy from a branch" is selected
-    - Choose "gh-pages" as the source branch
-    - The workflow will create this branch automatically on first run
-
-3. **Repository Ownership**:
-    - Make sure you have admin/write access to the repository
-    - If it's a forked repository, you may need to enable Actions in your fork
-
-### Rate Limiting
-
-The script includes delays between requests to be respectful to IMDB's servers. If you encounter rate limiting, you can increase the `SCRAPER_REQUEST_DELAY` setting.
-
-## Legal Considerations
-
-This project scrapes publicly available data from IMDB for personal/educational use. Please ensure compliance with:
-
-- IMDB's terms of service
-- Rate limiting (built into the script)
-- Fair use principles
+1. Confirm workflow permissions are set to "Read and write" (Settings → Actions → General).
+2. Confirm Pages is set to "Deploy from a branch" with the `gh-pages` branch (Settings → Pages). The workflow creates the branch on its first run.
+3. Confirm you have write access to the repository, and that Actions are enabled if you forked it.
 
 ## Contributing
 
-Feel free to submit issues or pull requests to improve the project. Some ideas:
-
-- Add more data sources
-- Improve error handling
-- Add filtering options
-- Include additional metadata
-
-## License
-
-This project is open source and available under the MIT License.
+Issues and pull requests are welcome. Licensed under the MIT License.

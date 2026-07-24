@@ -1,5 +1,4 @@
 import json
-from typing import List
 
 from .config import ScraperConfig
 from .models import ContentItem, DetailedOutput
@@ -10,7 +9,7 @@ class OutputManager:
     def __init__(self, config: ScraperConfig):
         self.config = config
 
-    def save_outputs(self, items: List[ContentItem]) -> None:
+    def save_outputs(self, items: list[ContentItem]) -> None:
         simple_items = ContentProcessor.create_simple_output(items)
         simple_data = [item.model_dump() for item in simple_items]
 
