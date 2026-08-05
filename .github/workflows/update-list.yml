@@ -35,6 +35,7 @@ jobs:
                   SCRAPER_MAX_MOVIES: ${{ vars.SCRAPER_MAX_MOVIES }}
                   SCRAPER_MAX_TV_SHOWS: ${{ vars.SCRAPER_MAX_TV_SHOWS }}
                   SCRAPER_MAX_TOTAL_ITEMS: ${{ vars.SCRAPER_MAX_TOTAL_ITEMS }}
+                  SCRAPER_MIN_YEAR: ${{ vars.SCRAPER_MIN_YEAR }}
               run: python fetch_top_list.py
 
             - name: Fetch home-released movies and series
@@ -43,6 +44,7 @@ jobs:
                   SCRAPER_MAX_MOVIES: ${{ vars.SCRAPER_MAX_MOVIES }}
                   SCRAPER_MAX_TV_SHOWS: ${{ vars.SCRAPER_MAX_TV_SHOWS }}
                   SCRAPER_MAX_TOTAL_ITEMS: ${{ vars.SCRAPER_MAX_TOTAL_ITEMS }}
+                  SCRAPER_MIN_YEAR: ${{ vars.SCRAPER_MIN_YEAR }}
                   SCRAPER_REQUIRE_HOME_RELEASE: "true"
                   SCRAPER_HOME_RELEASE_REGION: "US"
                   SCRAPER_SIMPLE_OUTPUT_FILE: top-list-home-release.json
