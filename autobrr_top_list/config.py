@@ -15,9 +15,9 @@ class ScraperConfig(BaseSettings):
         populate_by_name=True,
     )
 
-    max_movies: int = Field(default=50, ge=1, le=100)
-    max_tv_shows: int = Field(default=50, ge=1, le=100)
-    max_total_items: int = Field(default=100, ge=1, le=200)
+    max_movies: int = Field(default=50, ge=1, le=200)
+    max_tv_shows: int = Field(default=50, ge=1, le=200)
+    max_total_items: int = Field(default=100, ge=1, le=400)
 
     min_year: int | None = Field(
         default_factory=lambda: datetime.now().year - 5, ge=1900
