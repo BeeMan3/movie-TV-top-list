@@ -136,7 +136,7 @@ class TMDbClient:
             title=title.strip(), type=content_type, average_rating=float(rating)
         )
 
-def _has_home_release(self, movie_id: int) -> bool:
+    def _has_home_release(self, movie_id: int) -> bool:
         """Return True when a movie has reached home release in the chosen region."""
 
         query_params: dict[str, str] = {}
