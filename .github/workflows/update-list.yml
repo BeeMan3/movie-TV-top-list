@@ -44,10 +44,10 @@ jobs:
                   cp top-list-detailed.json deploy/
                   cp templates/index.html deploy/
 
-            - name: Deploy to GitHub Pages
-              uses: peaceiris/actions-gh-pages@v3
-              with:
-                  github_token: ${{ secrets.GITHUB_TOKEN }}
-                  publish_dir: deploy
-                  keep_files: false
-                  commit_message: "Update top movies and series list"
+            - name: Create deployment directory
+              run: |
+                mkdir -p deploy
+                cp top-list.json deploy/
+                cp top-list-detailed.json deploy/
+                jq -r '.[].title' top-list.json | awk 'NF && !seen[$0]++' > deploy/top-list.txt
+                cp templates/index.html deploy/
