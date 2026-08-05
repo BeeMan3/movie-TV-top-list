@@ -25,6 +25,8 @@ class ScraperConfig(BaseSettings):
     max_year: int | None = Field(default=None, ge=1900)
     min_rating: float | None = Field(default=6.0, ge=1.0, le=10.0)
     max_rating: float | None = Field(default=None, ge=1.0, le=10.0)
+    require_home_release: bool = Field(default=False)
+    home_release_region: str = Field(default="US", pattern=r"^[A-Z]{2}$")
 
     request_timeout: int = Field(default=15, ge=5, le=60)
     request_delay: float = Field(default=2.0, ge=0.1, le=10.0)
