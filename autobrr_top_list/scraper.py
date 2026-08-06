@@ -101,6 +101,188 @@ class TMDbClient:
             f"after {self.config.request_retries} attempts"
         ) from last_error
 
+    def _get_discover_movie_page(
+        self,
+        page_number: int,
+    ) -> dict[str, Any]:
+        """Fetch one page of popular, home-released movies."""
+
+        query_params: dict[str, str | int | float] = {
+            "language": "en-US",
+            "page": page_number,
+            "sort_by": "popularity.desc",
+            "include_adult": "false",
+            "include_video": "false",
+            "region": self.config.home_release_region,
+            "with_release_type": "4|5|6",
+            "release_date.lte": (
+                datetime.now(timezone.utc).date().isoformat()
+            ),
+            "vote_count.gte": (
+                self.config.popular_min_vote_count
+            ),
+        }
+
+        if self.config.min_year is not None:
+            query_params["primary_release_date.gte"] = (
+                f"{self.config.min_year}-01-01"
+            )
+
+        if self.config.max_year is not None:
+            query_params["primary_release_date.lte"] = (
+                f"{self.config.max_year}-12-31"
+            )
+
+        if self.config.min_rating is not None:
+            query_params["vote_average.gte"] = (
+                self.config.min_rating
+            )
+
+        if self.config.max_rating is not None:
+            query_params["vote_average.lte"] = (
+                self.config.max_rating
+            )
+
+        token = self.config.tmdb_read_access_token
+
+        if token is None and self.config.tmdb_api_key:
+            if self.config.tmdb_api_key.startswith("eyJ"):
+                token = self.config.tmdb_api_key
+            else:
+                query_params["api_key"] = (
+                    self.config.tmdb_api_key
+                )
+
+        query = urlencode(query_params)
+        url = (
+            f"{self.config.tmdb_base_url}/discover/movie?"
+            f"{query}"
+        )
+
+        request = (
+            Request(
+                url,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                },
+            )
+            if token
+            else url
+        )
+
+        last_error: Exception | None = None
+
+        for attempt in range(
+            1,
+            self.config.request_retries + 1,
+        ):
+            try:
+                with urlopen(
+                    request,
+                    timeout=self.config.request_timeout,
+                ) as response:
+                    payload = json.loads(
+                        response.read().decode("utf-8")
+                    )
+
+                if not isinstance(payload, dict):
+                    raise TMDbError(
+                        "TMDb Discover response was not "
+                        "a JSON object"
+                    )
+
+                return payload
+
+            except (
+                HTTPError,
+                URLError,
+                TimeoutError,
+                json.JSONDecodeError,
+            ) as exc:
+                last_error = exc
+
+                if attempt >= self.config.request_retries:
+                    break
+
+                print(
+                    "TMDb Discover request failed "
+                    f"(attempt {attempt}/"
+                    f"{self.config.request_retries}): "
+                    f"{exc}. Retrying..."
+                )
+                time.sleep(self.config.retry_delay)
+
+        raise TMDbError(
+            "Failed to fetch TMDb Discover movie page "
+            f"{page_number} after "
+            f"{self.config.request_retries} attempts"
+        ) from last_error
+
+    def fetch_discover_popular_movies(
+        self,
+    ) -> list[ContentItem]:
+        """Fetch popular home-released movies from Discover."""
+
+        if (
+            not self.config.tmdb_api_key
+            and not self.config.tmdb_read_access_token
+        ):
+            raise TMDbError(
+                "TMDB_API_KEY or "
+                "TMDB_READ_ACCESS_TOKEN is required"
+            )
+
+        items: list[ContentItem] = []
+        page_number = 1
+        total_pages: int | None = None
+
+        while (
+            len(items) < self.config.max_movies
+            and (
+                total_pages is None
+                or page_number <= total_pages
+            )
+        ):
+            payload = self._get_discover_movie_page(
+                page_number
+            )
+
+            results = payload.get("results")
+            if not isinstance(results, list):
+                raise TMDbError(
+                    "TMDb Discover response did not "
+                    "contain a results list"
+                )
+
+            for result in results:
+                item = self._to_content_item(
+                    result,
+                    ContentType.MOVIE,
+                )
+
+                if item is not None:
+                    items.append(item)
+
+                    if len(items) >= self.config.max_movies:
+                        return items
+
+            returned_total_pages = payload.get(
+                "total_pages"
+            )
+
+            if (
+                not isinstance(returned_total_pages, int)
+                or returned_total_pages < page_number
+            ):
+                return items
+
+            total_pages = returned_total_pages
+            page_number += 1
+            time.sleep(self.config.request_delay)
+
+        return items
+
+    
     def _to_content_item(
         self, result: Any, content_type: ContentType
     ) -> ContentItem | None:
