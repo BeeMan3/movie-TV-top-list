@@ -15,7 +15,7 @@ class ScraperConfig(BaseSettings):
         populate_by_name=True,
     )
 
-    max_movies: int = Field(default=50, ge=1, le=200)
+    max_movies: int = Field(default=50, ge=1, le=1000)
     max_tv_shows: int = Field(default=50, ge=1, le=200)
     max_total_items: int = Field(default=100, ge=1, le=400)
 
@@ -27,6 +27,7 @@ class ScraperConfig(BaseSettings):
     max_rating: float | None = Field(default=None, ge=1.0, le=10.0)
     require_home_release: bool = Field(default=False)
     home_release_region: str = Field(default="US", pattern=r"^[A-Z]{2}$")
+    popular_min_vote_count: int = Field(default=300, ge=0)
 
     request_timeout: int = Field(default=15, ge=5, le=60)
     request_delay: float = Field(default=2.0, ge=0.1, le=10.0)
