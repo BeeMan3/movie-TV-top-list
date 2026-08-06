@@ -51,6 +51,18 @@ jobs:
                   SCRAPER_DETAILED_OUTPUT_FILE: top-list-home-release-detailed.json
               run: python fetch_top_list.py
 
+            - name: Fetch popular home-released movies
+              env:
+                  TMDB_READ_ACCESS_TOKEN: ${{ secrets.TMDB_READ_ACCESS_TOKEN }}
+                  SCRAPER_MAX_MOVIES: "400"
+                  SCRAPER_MIN_YEAR: "1990"
+                  SCRAPER_MIN_RATING: "6.0"
+                  SCRAPER_POPULAR_MIN_VOTE_COUNT: "300"
+                  SCRAPER_HOME_RELEASE_REGION: "US"
+                  SCRAPER_SIMPLE_OUTPUT_FILE: top-list-popular-home-release.json
+                  SCRAPER_DETAILED_OUTPUT_FILE: top-list-popular-home-release-detailed.json
+              run: python fetch_popular_movies.py
+
             - name: Create deployment directory
               run: |
                 mkdir -p deploy
@@ -64,6 +76,11 @@ jobs:
                 cp top-list-home-release-detailed.json deploy/
                 jq -r '.[].title' top-list-home-release.json |
                   awk 'NF && !seen[$0]++' > deploy/top-list-home-release.txt
+
+                cp top-list-popular-home-release.json deploy/
+                cp top-list-popular-home-release-detailed.json deploy/
+                jq -r '.[].title' top-list-popular-home-release.json |
+                  awk 'NF && !seen[$0]++' > deploy/top-list-popular-home-release.txt
 
                 cp templates/index.html deploy/
 
