@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a popular, home-released movie list."""
+"""Generate a popular, home-released movie list. Should be in main directory"""
 
 import sys
 
