@@ -61,7 +61,7 @@ jobs:
                   SCRAPER_HOME_RELEASE_REGION: "US"
                   SCRAPER_SIMPLE_OUTPUT_FILE: top-list-popular-home-release.json
                   SCRAPER_DETAILED_OUTPUT_FILE: top-list-popular-home-release-detailed.json
-              run: python autobrr_top_list/fetch_popular_movies.py
+              run: python fetch_popular_movies.py
 
             - name: Create deployment directory
               run: |
